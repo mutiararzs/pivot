@@ -15,6 +15,11 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tes', [AssessmentController::class, 'info'])->name('tes.info');
+    Route::post('/tes/mulai', [AssessmentController::class, 'start'])->name('tes.mulai');
+    Route::get('/tes/{assessment}/soal/{no}', [AssessmentController::class, 'show'])
+        ->whereNumber('no')->name('tes.soal');
+    Route::post('/tes/{assessment}/soal/{no}', [AssessmentController::class, 'answer'])
+        ->whereNumber('no')->name('tes.jawab');
 });
 
 Route::middleware('auth')->group(function () {
@@ -23,4 +28,4 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
