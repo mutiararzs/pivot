@@ -124,7 +124,30 @@ class AssessmentController extends Controller
             'isLast' => $no >= $total,
         ]);
     }
+    /**
+ * Menampilkan riwayat tes milik pengguna yang login.
+ */
+    public function history(Request $request): View
+    {
+        $user = $request->user();
 
+        $totalQuestions = Question::count();
+
+        $assessments = $user->assessments()
+            ->withCount('answers')
+            ->latest()
+            ->paginate(self::PAGE_SIZE);
+
+        return view('tes.riwayat', [
+            'assessments' => $assessments,
+            'totalQuestions' => $totalQuestions,
+            'totalAssessments' => $user->assessments()->count(),
+            'completedCount' => $user->assessments()
+                ->where('status', 'completed')->count(),
+            'inProgressCount' => $user->assessments()
+                ->where('status', 'in_progress')->count(),
+        ]);
+    }
     /**
      * Simpan jawaban soal ini, lalu pindah soal atau kirim jawaban.
      */

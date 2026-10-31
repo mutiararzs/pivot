@@ -15,6 +15,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tes', [AssessmentController::class, 'info'])->name('tes.info');
+    Route::get('/riwayat', [AssessmentController::class, 'history'])->name('riwayat');
     Route::post('/tes/mulai', [AssessmentController::class, 'start'])->name('tes.mulai');
     Route::get('/tes/{assessment}/soal/{no}', [AssessmentController::class, 'show'])
         ->whereNumber('no')->name('tes.soal');
