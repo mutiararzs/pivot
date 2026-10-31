@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Models\Question;
 
 class DashboardController extends Controller
 {
@@ -28,8 +29,8 @@ class DashboardController extends Controller
             'today' => Carbon::now()->locale('id')->translatedFormat('j F Y'),
 
             // Info tes
-            'totalQuestions' => 60,
-            'estimatedMinutes' => 25,
+            'totalQuestions' => Question::count(),
+            'estimatedMinutes' => 5,
 
             // TODO: ganti dengan data asli dari tabel assessments saat fitur tes selesai.
             // Isi null jika siswa belum pernah menyelesaikan tes.

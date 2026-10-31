@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('no')->name('tes.soal');
     Route::post('/tes/{assessment}/soal/{no}', [AssessmentController::class, 'answer'])
         ->whereNumber('no')->name('tes.jawab');
+    Route::get('/tes/{assessment}/hasil', [AssessmentController::class, 'hasil'])->name('tes.hasil');
 });
 
 Route::middleware('auth')->group(function () {
@@ -28,4 +29,4 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

@@ -27,14 +27,14 @@ class AssessmentController extends Controller
      */
     public function info(): View
     {
-        $totalQuestions = Question::count() ?: 60;
-        $estimatedMinutes = 25;
+        $totalQuestions = Question::count();
+        $estimatedMinutes = 5;
 
         return view('tes.informasi', [
             'badge' => 'Asesmen Minat Bakat',
             'title' => 'Tes Minat & Bakat (RIASEC)',
             'description' => 'Asesmen ini dirancang untuk memetakan kepribadian, minat aktivitas, '
-                .'dan potensi karier ideal berdasarkan teori Holland Code.',
+                . 'dan potensi karier ideal berdasarkan teori Holland Code.',
 
             'stats' => [
                 ['icon' => 'question', 'value' => "{$totalQuestions} Soal", 'label' => 'Jumlah Pertanyaan'],
@@ -179,7 +179,7 @@ class AssessmentController extends Controller
         if ($answered < $total) {
             return redirect()
                 ->route('tes.soal', ['assessment' => $assessment->id, 'no' => $no])
-                ->with('error', 'Masih ada '.($total - $answered).' soal yang belum dijawab.');
+                ->with('error', 'Masih ada ' . ($total - $answered) . ' soal yang belum dijawab.');
         }
 
         $totals = Answer::query()
@@ -189,6 +189,7 @@ class AssessmentController extends Controller
             ->groupBy('questions.category')
             ->pluck('total', 'category');
 
+        $counts = Question::selectRaw('category, COUNT(*) as n')->groupBy('category')->pluck('n', 'category');
         $order = ['R', 'I', 'A', 'S', 'E', 'C'];
         $scores = [];
         foreach ($order as $c) {
@@ -197,7 +198,8 @@ class AssessmentController extends Controller
 
         // Tiga skor tertinggi = kode Holland (seri diurutkan R, I, A, S, E, C).
         $ranked = $order;
-        usort($ranked, fn ($a, $b) => [$scores[$b], array_search($a, $order)] <=> [$scores[$a], array_search($b, $order)]);
+        $ratio = fn($c) => $scores[$c] / max(($counts[$c] ?? 1) * 5, 1);
+        usort($ranked, fn($a, $b) => [$ratio($b), array_search($a, $order)] <=> [$ratio($a), array_search($b, $order)]);
         $holland = implode('', array_slice($ranked, 0, 3));
 
         $assessment->update([
@@ -218,6 +220,47 @@ class AssessmentController extends Controller
         }
 
         return redirect()->route('dashboard');
+    }
+
+    /**
+     * Halaman Hasil Tes: interpretasi, karier, dan jurusan berdasarkan kode Holland.
+     */
+    public function hasil(Request $request, Assessment $assessment): View|RedirectResponse
+    {
+        $this->authorizeAssessment($request, $assessment);
+
+        if (! $assessment->isCompleted() || strlen((string) $assessment->holland_code) < 3) {
+            return redirect()->route('tes.info');
+        }
+
+        $types = config('holland.types');
+        $letters = str_split($assessment->holland_code);
+        [$first, $second, $third] = [$types[$letters[0]], $types[$letters[1]], $types[$letters[2]]];
+
+        $names = [$first['name'], $second['name'], $third['name']];
+
+        $scores = [];
+        foreach (['R', 'I', 'A', 'S', 'E', 'C'] as $c) {
+            $scores[] = [
+                'code' => $c,
+                'name' => $types[$c]['name'],
+                'score' => (int) $assessment->{'score_' . strtolower($c)},
+                'max' => Question::where('category', $c)->count() * 5,
+            ];
+        }
+
+        return view('tes.hasil', [
+            'assessment' => $assessment,
+            'completedText' => $assessment->completed_at->locale('id')->translatedFormat('j F Y'),
+            'dominantCode' => implode(' • ', $letters),
+            'dominantLabel' => implode(' - ', $names),
+            'profileTitle' => "Profil Utama: {$first['name']} & {$second['name']}",
+            'profileDescription' => $first['description'],
+            'traits' => $first['traits'],
+            'careers' => [$first['careers'][0], $first['careers'][1], $second['careers'][0]],
+            'majors' => [$first['majors'][0], $first['majors'][1], $second['majors'][0]],
+            'scores' => $scores,
+        ]);
     }
 
     private function authorizeAssessment(Request $request, Assessment $assessment): void

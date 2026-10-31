@@ -84,10 +84,14 @@ class QuestionSeeder extends Seeder
             ],
         ];
 
-        // 60 soal, diselang-seling per kategori (I, R, A, S, E, C) seperti versi mobile.
+        // 10 soal, diselang-seling per kategori (I, R, A, S, E, C) seperti versi mobile.
+        $limit = 10; // jumlah soal yang dipakai
         $order = 1;
         for ($i = 0; $i < 10; $i++) {
             foreach (['I', 'R', 'A', 'S', 'E', 'C'] as $category) {
+                if ($order > $limit) {
+                    break 2;
+                }
                 Question::updateOrCreate(
                     ['sort_order' => $order],
                     ['category' => $category, 'text' => $bank[$category][$i]],
@@ -95,5 +99,7 @@ class QuestionSeeder extends Seeder
                 $order++;
             }
         }
+        // Hapus soal di atas batas (jika sebelumnya pernah 60 soal).
+        Question::where('sort_order', '>', $limit)->delete();
     }
 }
