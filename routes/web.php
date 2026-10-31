@@ -20,13 +20,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('no')->name('tes.soal');
     Route::post('/tes/{assessment}/soal/{no}', [AssessmentController::class, 'answer'])
         ->whereNumber('no')->name('tes.jawab');
-    Route::get('/tes/{assessment}/hasil', [AssessmentController::class, 'hasil'])->name('tes.hasil');
 });
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile/informasi', [ProfileController::class, 'info'])->name('profile.info');
+    Route::get('/profile/keamanan', [ProfileController::class, 'security'])->name('profile.security');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

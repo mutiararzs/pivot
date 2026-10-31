@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Assessment;
+use App\Models\Question;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,18 +13,60 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    private const TYPES = [
+        'R' => 'Realistik',
+        'I' => 'Investigatif',
+        'A' => 'Artistik',
+        'S' => 'Sosial',
+        'E' => 'Enterprising',
+        'C' => 'Konvensional',
+    ];
+
     /**
-     * Display the user's profile form.
+     * Halaman Profil (kartu profil, tes terakhir, pengaturan, keluar).
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+
+        $completedCount = $user->assessments()
+            ->where('status', Assessment::STATUS_COMPLETED)
+            ->count();
+
+        $last = $user->assessments()
+            ->where('status', Assessment::STATUS_COMPLETED)
+            ->latest('completed_at')
+            ->first();
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'completedCount' => $completedCount,
+            'lastTest' => $last ? $this->summarize($last) : null,
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * Halaman Informasi Pribadi.
+     */
+    public function info(Request $request): View
+    {
+        return view('profile.informasi', [
+            'user' => $request->user(),
+            'levels' => ProfileUpdateRequest::LEVELS,
+            'classes' => ProfileUpdateRequest::classOptions(),
+        ]);
+    }
+
+    /**
+     * Halaman Ubah Kata Sandi & Keamanan.
+     */
+    public function security(Request $request): View
+    {
+        return view('profile.keamanan', ['user' => $request->user()]);
+    }
+
+    /**
+     * Simpan Informasi Pribadi.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -38,7 +82,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's account.
+     * Hapus akun.
      */
     public function destroy(Request $request): RedirectResponse
     {
@@ -56,5 +100,28 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * Ringkas tes yang sudah selesai untuk kartu "Tes Terakhir Diambil".
+     */
+    private function summarize(Assessment $a): array
+    {
+        $code = strtoupper(substr((string) $a->holland_code, 0, 1));
+        $score = $code !== '' ? (int) $a->{'score_'.strtolower($code)} : 0;
+        $max = $code !== '' ? Question::where('category', $code)->count() * 5 : 0;
+        $percent = $max > 0 ? (int) round($score / $max * 100) : 0;
+
+        return [
+            'id' => $a->id,
+            'title' => 'Tes RIASEC Minat & Bakat',
+            'date' => $a->completed_at?->locale('id')->translatedFormat('j F Y') ?? '-',
+            'level' => match (true) {
+                $percent >= 70 => 'Tinggi',
+                $percent >= 40 => 'Sedang',
+                default => 'Rendah',
+            },
+            'type' => self::TYPES[$code] ?? '-',
+        ];
     }
 }

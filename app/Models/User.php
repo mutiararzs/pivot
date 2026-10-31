@@ -13,34 +13,23 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-
     protected $fillable = [
         'name',
         'email',
         'password',
         'tanggal_lahir',
+        'phone',
+        'school',
+        'level',
+        'kelas',
+        'city',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -49,6 +38,29 @@ class User extends Authenticatable
             'tanggal_lahir' => 'date',
         ];
     }
+
+    /**
+     * Ringkasan di kartu profil, contoh: "Siswa Kelas 12 SMA • IPA".
+     */
+    public function getStudentInfoAttribute(): string
+    {
+        $parts = $this->kelas ? explode(' ', trim($this->kelas), 2) : [];
+        $grade = $parts[0] ?? null;
+        $program = $parts[1] ?? null;
+
+        $text = 'Siswa';
+        if ($grade) {
+            $text .= ' Kelas '.$grade.($this->level ? ' '.$this->level : '');
+        } elseif ($this->level) {
+            $text .= ' '.$this->level;
+        }
+        if ($program) {
+            $text .= ' • '.$program;
+        }
+
+        return $text;
+    }
+
     public function assessments(): HasMany
     {
         return $this->hasMany(Assessment::class);
